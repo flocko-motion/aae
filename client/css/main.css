@@ -1,0 +1,37 @@
+.hidden {
+    display: none;
+}
+
+label {
+    margin-bottom: 10px;
+    display: block;
+}
+
+html {
+    height: 100%;
+    padding:  0;
+    margin: 0;
+}
+
+body {
+    height: 100%;
+    display: flex;
+    padding: 0;
+    margin: 0;
+
+    font-family: Verdana, Arial, sans-serif;
+    font-size:11px;
+}
+
+.Content {
+    flex-grow: 1;
+}
+
+#title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.w2ui-tabs .w2ui-tab {
+    background-color: #e4e4e4;
+}

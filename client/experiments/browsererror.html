@@ -1,0 +1,33 @@
+<html>
+<body>
+<div id="output">
+    <h3>Please wait, measuring..</h3>
+</div>
+<script>
+
+const t0 = new Date().getTime();
+const out = document.getElementById("output");
+
+let a = new Audio('https://bammedia.omnitopos.net/bamory/bamory_0.mp3');
+a.play();
+
+let i = 0;
+let errors = [];
+
+let loop = window.setInterval(function(){
+    if(i++ >= 20) {
+        window.clearInterval(loop);
+        let report = '"Time", "Error"<br />';
+        for(let i in errors) {
+            report += '"'+ errors[i].t + '", "' + String(errors[i].e).replace(".", ",") + '"<br />';
+        }
+        out.innerHTML = report;
+    }
+    let runtime = new Date().getTime() - t0;
+    let e = runtime - (a.currentTime * 1000);
+    errors.push({'t':runtime, 'e':e});
+}, 100);
+
+</script>
+</body>
+</html>

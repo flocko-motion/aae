@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<script>
+
+    async function d1000() {
+
+      let promise = new Promise((resolve, reject) => {
+        setTimeout(() => resolve("done waiting!"), 1000)
+      });
+      let result = await promise; // wait until the promise resolves (*)
+      console.log(result);
+    }
+
+    window.onload = async () => {
+        await d1000();
+        await d1000();
+        await d1000();
+        await d1000();
+        console.log('f done');
+    };
+
+
+
+
+</script>
+</body>
+</html>

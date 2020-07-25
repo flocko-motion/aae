@@ -1,0 +1,106 @@
+{
+  "name": "Test Game",
+  "description": "This is a simpel test game",
+  "url": "https://bamory.net",
+  "channels": [
+    {
+      "name": "Channel 1",
+      "assignment": "auto",
+      "playersMin": 0,
+      "playersMax": null
+    },
+    {
+      "name": "Channel 2",
+      "assignment": "first",
+      "playersMin": 1,
+      "playersMax": 1
+    },
+    {
+      "name": "Channel 3",
+      "assignment": "last",
+      "playersMin": 2,
+      "playersMax": 4
+    },
+    {
+      "name": "Channel 4",
+      "assignment": "auto",
+      "playersMin": null,
+      "playersMax": null
+    }
+  ],
+  "audio": {
+    "file_1":{
+      "url": "https://media/file_1.mp3",
+      "length": "152355",
+      "quality": "128kb/s 44kHz CBR",
+      "size": "2835882552",
+      "date": "257775755"
+    },
+    "file_2":{
+      "url": "https://media/file_2.mp3",
+      "length": "152355",
+      "quality": "128kb/s 44kHz CBR",
+      "size": "2835882552",
+      "date": "257775355"
+    },
+    "file_3":{
+      "url": "https://media/file_3.mp3",
+      "length": "152355",
+      "quality": "128kb/s 44kHz CBR",
+      "size": "2835882552",
+      "date": "257775754"
+    },
+    "file_4":{
+      "url": "https://media/file_4.mp3",
+      "length": "152355",
+      "quality": "128kb/s 44kHz CBR",
+      "size": "2835882552",
+      "date": "257775555"
+    },
+    "chapter2_1":{
+      "url": "https://media/file_2.1.mp3",
+      "length": "3004355",
+      "quality": "128kb/s 44kHz CBR",
+      "size": "1648482552",
+      "date": "257775755"
+    },
+    "chapter2_2":{
+      "url": "https://media/file_2.2.mp3",
+      "length": "3004355",
+      "quality": "128kb/s 44kHz CBR",
+      "size": "1648482552",
+      "date": "257775355"
+    },
+    "chapter2_3":{
+      "url": "https://media/file_2.3.mp3",
+      "length": "3004355",
+      "quality": "128kb/s 44kHz CBR",
+      "size": "1648482552",
+      "date": "257775754"
+    },
+    "chapter2_4":{
+      "url": "https://media/file_2.4.mp3",
+      "length": "3004355",
+      "quality": "128kb/s 44kHz CBR",
+      "size": "1648482552",
+      "date": "257775555"
+    }
+  },
+  "clips": {
+    "clip_0": {
+      "name": "The Intro",
+      "audio": ["file_1","file_2","file_3","file_4"],
+      "endOfClipAction": {
+        "action": "goto",
+        "param": "clip_2"
+      }
+    },
+    "clip_2": {
+      "name" : "The Second Chapter",
+      "audio": ["chapter2_1","chapter2_2","chapter2_3","chapter2_4"],
+      "endOfClipAction": {
+        "action": "loop"
+      }
+    }
+  }
+}

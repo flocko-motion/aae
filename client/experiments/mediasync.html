@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MediaSync Test</title>
+    <script src="../lib/timingsrc-v2.1.js"></script>
+    <script src="../js/mediasync.js"></script>
+</head>
+<body>
+<script>
+    // timing object
+    //var to = new TIMINGSRC.TimingObject({provider:timingProvider});
+    var to = new TIMINGSRC.TimingObject({range:[0,100]});
+
+    // set up video sync
+    var sync1 = MCorp.mediaSync(document.getElementById('player1'), to);
+
+    // set up video sync
+    var sync2 = MCorp.mediaSync(document.getElementById('player2'), to);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AAE Studio</title>
+    <link rel="icon" type="image/png" href="gfx/favicon.png">
+    <link rel="shortcut icon" type="image/png" href="gfx/favicon.png"/>
+    <link rel="stylesheet" type="text/css" href="lib/w2ui.min.css" />
+    <link rel="stylesheet" type="text/css" href="css/main.css" />
+    <script src="https://kit.fontawesome.com/c3332e2f38.js" crossorigin="anonymous"></script>
+    <script src="lib/jquery.min.js"></script>
+    <script src="lib/w2ui.min.js"></script>
+    <script src="https://cdn.auth0.com/js/auth0-spa-js/1.7/auth0-spa-js.production.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="lib/moment.min.js"></script>
+    <script src="lib/socket.io.js"></script>
+</head>
+<body>
+
+<div id="layout" style="width: 100%; height: 100%; min-height:400px;" class="content"></div>
+
+<div class="hidden" id="gated-content">
+    <p>
+        You're seeing this content because you're currently
+        <strong>logged in</strong>.
+    </p>
+    <label>
+        Access token:
+        <pre id="ipt-access-token"></pre>
+    </label>
+    <label>
+        User profile:
+        <pre id="ipt-user-profile"></pre>
+    </label>
+</div>
+
+
+<script type="module" src="js/main.mjs"></script>
+
+
+</body>
+</html>
