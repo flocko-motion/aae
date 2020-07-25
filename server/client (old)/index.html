@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+
+    <meta name="viewport" content="initial-scale=1, user-scalable=no"/>
+    <meta name="theme-color" content="#295454"/>
+    <title>BAM</title>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <!-- <script src="js/modernizr-custom.min.js"></script> //-->
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <!-- vue.js development version, includes helpful console warnings -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- vue.js production version, optimized for size and speed -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue"></script> -->
+    <script src="js/moment.min.js"></script>
+    <script src="js/socket.io.js"></script>
+    <!-- <script src="js/jsmediatags.min.js"></script> //-->
+    <!-- <script src="js/howler.js"></script> //-->
+    <script src="js/ui.js"></script>
+    <script src="js/bamcore.js"></script>
+    <script src="js/main-game.js"></script>
+</head>
+<body>
+
+
+<!-- item template -->
+<script type="text/x-template" id="item-template">
+    <li>
+        <div
+                :class="{bold: isFolder}"
+                @click="toggle"
+        ><!-- @dblclick="changeType" -->
+            {{ model.name }}
+            <span v-if="isFolder">[{{ open ? '-' : '+' }}]</span>
+        </div>
+        <ul v-show="open" v-if="isFolder">
+            <item
+                    class="item"
+                    v-for="(model, index) in model.children"
+                    :key="index"
+                    :model="model">
+            </item>
+            <!-- <li class="add" @click="addChild">+</li> //-->
+        </ul>
+    </li>
+</script>
+
+<!-- main app -->
+<div id="app">
+    <header>
+        <h1 class="title">{{ title }}</h1>
+        <h2 class="title">{{ userName }} <span class="green">{{ userRole }}</span> {{ $data.user ? "- User #" + $data.user.unum : null }}</h2>
+    </header>
+    <main>
+        <div class="splashHidden">
+
+        </div>
+        <div class="page" x-page="splash">
+
+            <div class="centered">
+                <h2 class="ui">Welcome</h2>
+                <img src="gfx/headphones.png" style="width:300px"/><br/>
+                <p>This is Bamory - it's an audio game, so there's not much to see here..</p>
+                <p>Put on your <strong style="color:red">headphones</strong> and listen!</p><br />
+                <p>By using this website you accept our <a onclick="Ui.page('imprint');">terms and conditions</a> and cookies.</p>
+                <button class="ui" onclick="enter();">Got that, let's go!</button>
+            </div>
+        </div>
+        <div class="page initHidden" x-page="home">
+            <h2>Menu</h2>
+            <?php echo 'PHP available'; ?>
+        </div>
+        <div class="page" x-page="loading" style="text-align:center;">
+            <p class="centered">
+                Loading.. Please wait..<br />&nbsp;<br />
+                <progress v-bind="{ value:loadingProgress }" max="100">{{ loadingProgress }}%</progress>
+            </p>
+        </div>
+        <div class="page" x-page="game" style="text-align:center;">
+            <p class="centered">
+                TODO: Visualization of online players
+            </p>
+        </div>
+        <div class="page" x-page="system">
+            <button class="ui" onclick="Ui.page('game');">Back to the game</button>
+            <br/> <br/>
+            <!--
+            <button onclick="Snd.play();">Play Audio</button>
+            <button onclick="Snd.sync();">Sync Audio</button>
+            <button onclick="Snd.stop();">Stop Audio</button>
+            <button onclick="Time.sync(5);">Resync Clock x 5</button>
+            //-->
+            <div style="clear:both;margin-top:25px;"></div>
+            Time:
+            <ul>
+                <li>Server: {{ timeServer }}</li>
+                <li>&Delta;Server: {{ Number(timeDiff).toFixed(3) }}s {{ (timePings[0] ? '&plusmn;'
+                        + Number(timePings[0].roundTrip / 2 * 1000).toFixed(0) + 'ms': '-') }}
+                </li>
+                <!-- <li>&Delta;random: {{ Number(timeRandomDelta).toFixed(2) }}s</li> //-->
+                <li>Sync Steps: {{ Number(timePingsCount).toFixed(0) }}(+{{ Number(timeSyncSteps).toFixed(0) }})
+                    &sigma;={{ Number(timeRoundTripStandardDeviation).toFixed(4) }}
+                </li>
+                <li>Game: {{ timeGame }}</li>
+            </ul>
+            Audio:
+            <div id="audioTags">
+                <audio id="audioEnabler" controls loop >
+                    <source src="https://bammedia.omnitopos.net/_silence.mp3"/>
+                    <source src="https://bammedia.omnitopos.net/_silence.ogg"/>
+                </audio>
+            </div>
+            <ul>
+                <li>URL: {{ sndUrl }}</li>
+                <li>Length: {{ Number(sndLen).toFixed(3) }}s</li>
+                <li>Buffer: [{{ sndBuffer }}]</li>
+                <li>&Delta;Sync (Mode): {{ Number(sndDiff * 1000).toFixed(0) }}ms ({{ sndSyncMode }})</li>
+                <li>tSync (acc): {{ Number(sndSyncCountDown / 1000).toFixed(2) }}s ({{ Number(sndSyncCountDownA).toFixed(2) }})</li>
+                <li>Rate: {{ Number(sndRate).toFixed(10) }}</li>
+                <li>Rate Change Delay: {{ sndRateChangeDelay }}</li>
+                <li>Status: {{ sndStatus }}</li>
+
+            </ul>
+            Control:<br />
+            <input type="text" class="shell" id="shellInput"/><br/>
+            <button class="shell" id="shellEnter">Send</button>
+
+            {{ controlOut }}
+            <br />
+            Pings:
+            <ul>
+                <li v-for="item in timePings">
+                    Round Trip: {{ isNaN(item.roundTrip) ? 'NaN':Number(item.roundTrip * 1000).toFixed() + 'ms' }},
+                    &Delta;t: {{ isNaN(item.diff) ? 'NaN' : Number(item.diff * 1000).toFixed() + 'ms' }}
+                </li>
+            </ul>
+            Com:
+            <ul>
+                <li v-for="item in messages.slice(0,10)">
+                    {{ item.res ? item.recipient : String(item.sender).substr(-3) }}&rarr;{{ item.res ? String(item.sender).substr(-3) : item.recipient}}: {{ item.method }}-{{ item.subject }}
+                    ({{ item.params }})<span v-if="item.res"><br/><span style="color:darkgrey">&rarr; {{ String(item.res) }}</span></span>
+                </li>
+            </ul>
+            Log:
+            <ul>
+                <li v-for="item in log.slice().reverse()">
+                    <span style="color:darkgrey">{{ item.time }}s, L{{ item.level }}.{{ item.chapter }}</span><br/>{{
+                    item.text }}
+                </li>
+            </ul>
+            <div style="clear:both;"></div>
+
+        </div>
+
+        <div class="page" x-page="imprint">
+            <button class="ui" onclick="Ui.page('splash');">Back to the game</button>
+            <h2>TOC, Impressum &amp; Copyright</h2>
+            <div class='impressum'><p>Angaben gemäß § 5 TMG</p>
+                <p>Florian Noel und Bruno Pilz <br>
+                    c/o Noel<br/>
+                    Prenzlauer Promenade 182<br>
+                    13189 Berlin <br>
+                </p>
+                <p><strong>Kontakt:</strong> <br>
+                    Telefon: +49-17670363306<br>
+                    E-Mail: <a href='mailto:bam4.0@omnitopos.net'>bam4.0@omnitopos.net</a></br></p>
+                <p><strong>Haftungsausschluss: </strong><br><br><strong>Haftung für Inhalte</strong><br><br>
+                    Die Inhalte unserer Seiten wurden mit größter Sorgfalt erstellt. Für die Richtigkeit,
+                    Vollständigkeit und Aktualität der Inhalte können wir jedoch keine Gewähr übernehmen. Als
+                    Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den
+                    allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht
+                    verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen
+                    zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder
+                    Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt. Eine
+                    diesbezügliche Haftung ist jedoch erst ab dem Zeitpunkt der Kenntnis einer konkreten
+                    Rechtsverletzung möglich. Bei Bekanntwerden von entsprechenden Rechtsverletzungen werden wir diese
+                    Inhalte umgehend entfernen.<br><br><strong>Haftung für Links</strong><br><br>
+                    Unser Angebot enthält Links zu externen Webseiten Dritter, auf deren Inhalte wir keinen Einfluss
+                    haben. Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte
+                    der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich. Die
+                    verlinkten Seiten wurden zum Zeitpunkt der Verlinkung auf mögliche Rechtsverstöße überprüft.
+                    Rechtswidrige Inhalte waren zum Zeitpunkt der Verlinkung nicht erkennbar. Eine permanente
+                    inhaltliche Kontrolle der verlinkten Seiten ist jedoch ohne konkrete Anhaltspunkte einer
+                    Rechtsverletzung nicht zumutbar. Bei Bekanntwerden von Rechtsverletzungen werden wir derartige Links
+                    umgehend entfernen.<br><br><strong>Urheberrecht</strong><br><br>
+                    Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem
+                    deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung
+                    außerhalb der Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors
+                    bzw. Erstellers. Downloads und Kopien dieser Seite sind nur für den privaten, nicht kommerziellen
+                    Gebrauch gestattet. Soweit die Inhalte auf dieser Seite nicht vom Betreiber erstellt wurden, werden
+                    die Urheberrechte Dritter beachtet. Insbesondere werden Inhalte Dritter als solche gekennzeichnet.
+                    Sollten Sie trotzdem auf eine Urheberrechtsverletzung aufmerksam werden, bitten wir um einen
+                    entsprechenden Hinweis. Bei Bekanntwerden von Rechtsverletzungen werden wir derartige Inhalte
+                    umgehend entfernen.<br><br><strong>Datenschutz</strong><br><br>
+                    Die Nutzung unserer Webseite ist in der Regel ohne Angabe personenbezogener Daten möglich. Soweit
+                    auf unseren Seiten personenbezogene Daten (beispielsweise Name, Anschrift oder eMail-Adressen)
+                    erhoben werden, erfolgt dies, soweit möglich, stets auf freiwilliger Basis. Diese Daten werden ohne
+                    Ihre ausdrückliche Zustimmung nicht an Dritte weitergegeben. <br>
+                    Wir weisen darauf hin, dass die Datenübertragung im Internet (z.B. bei der Kommunikation per E-Mail)
+                    Sicherheitslücken aufweisen kann. Ein lückenloser Schutz der Daten vor dem Zugriff durch Dritte ist
+                    nicht möglich. <br>
+                    Der Nutzung von im Rahmen der Impressumspflicht veröffentlichten Kontaktdaten durch Dritte zur
+                    Übersendung von nicht ausdrücklich angeforderter Werbung und Informationsmaterialien wird hiermit
+                    ausdrücklich widersprochen. Die Betreiber der Seiten behalten sich ausdrücklich rechtliche Schritte
+                    im Falle der unverlangten Zusendung von Werbeinformationen, etwa durch Spam-Mails, vor.<br>
+                </p><br>
+                Website Impressum von <a href="https://www.impressum-generator.de">impressum-generator.de</a>
+            </div>
+
+        </div>
+        <div class="page" x-page="nojs" style="font-size:20px">
+            <h2>Time Travellers Error</h2>This website needs <b>JAVASCRIPT</b> and a <b>MODERN BROWSER</b> to
+            work<br/><br/>
+            If you see this, your software is too old or you are blocking JavaScript.<br/> <br/>
+            We are recommending to use the latest <a href="http://chrome.com">Chrome Browser</a>
+        </div>
+        <div class="page" x-page="cookies">
+            <h2>Cookies</h2>This game requires cookies..
+        </div>
+    </main>
+    <footer>
+        <div id="debugButton"><img src="gfx/debug.png"></div>
+        <h3 class="title">{{ timeServer }}</h3>
+    </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+
+    <meta name="viewport" content="initial-scale=1, user-scalable=no"/>
+    <meta name="theme-color" content="#295454"/>
+    <title>BAM - Puppetmaster</title>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <!-- <script src="js/modernizr-custom.min.js"></script> //-->
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <!-- vue.js development version, includes helpful console warnings -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- vue.js production version, optimized for size and speed -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue"></script> -->
+    <script src="js/moment.min.js"></script>
+    <script src="js/socket.io.js"></script>
+    <!-- <script src="js/jsmediatags.min.js"></script> //-->
+    <!-- <script src="js/howler.js"></script> //-->
+    <script src="js/ui.js"></script>
+    <script src="js/bamcore.js"></script>
+    <script src="js/main-master.js"></script>
+</head>
+<body>
+
+<!-- main app -->
+<div id="app">
+    <header>
+        <h1 class="title">{{ title }} </h1><img id="avatar" />
+        <h2 class="title">{{ userName }} <span class="green">{{ userRole }}</span>
+            {{ $data.user ? "- User #" + $data.user.unum : null }}</h2>
+    </header>
+    <main>
+        <div class="page initHidden container" x-page="home">
+            <div class="accordion">
+                <div class="accordionTitle">
+                    Users ({{ server.users ? Object.keys(server.users).length : '' }})
+                </div>
+                <div class="accordionPanel scrollY">
+                    <ul class="noBullets">
+                        <li onclick="MasterUi.selectUser(this);" class="selectable" style="min-height: 45px;"
+                            v-for="item in server.users"
+                            v-bind:class="{ green: item.online, red: !item.online, selected: item.uid == masterUidSelected }"
+                            v-bind:data-uid="item.uid">
+                            <img style="float:left;width:35px" v-bind:src="item.avatar"  />unum: {{ item.unum }}, last seen: {{ item.last_seen }}s
+                            <br />uid: {{  item.uid }}<br />
+                            cid: {{  item.cid }}
+                        </li>
+                    </ul>
+                </div>
+                <span v-if="masterUidSelected">
+                    <div class="accordionTitle">
+                        User #{{ server.users[masterUidSelected].unum }} Details
+                    </div>
+                    <div  class="accordionPanel scrollY">
+                        <span v-if="masterUserReport">
+                            Time:
+                            <ul v-if="masterUserReport">
+                                <li>Server: {{ masterUserReport.timeServer }}</li>
+                                <li>&Delta;Server: {{ Number(masterUserReport.timeDiff).toFixed(3) }}s {{ (masterUserReport.timePings[0] ? '&plusmn;'
+                            + Number(masterUserReport.timePings[0].roundTrip / 2 * 1000).toFixed(0) + 'ms': '-') }}
+                                </li>
+                                <li>Sync Steps: {{ Number(masterUserReport.timePingsCount).toFixed(0) }}(+{{ Number(masterUserReport.timeSyncSteps).toFixed(0) }})
+                                    &sigma;={{ Number(masterUserReport.timeRoundTripStandardDeviation).toFixed(4) }}
+                                </li>
+                                <li>Game: {{ masterUserReport.timeGame }}</li>
+                            </ul>
+                            Audio:
+                            <ul v-if="masterUserReport">
+                                <li>URL: {{ masterUserReport.sndUrl }}</li>
+                                <li>Length: {{ Number(masterUserReport.sndLen).toFixed(3) }}s</li>
+                                <li>Buffer: [{{ masterUserReport.sndBuffer }}]</li>
+                                <li>&Delta;Sync (Mode): {{ Number(masterUserReport.sndDiff * 1000).toFixed(0) }}ms ({{ masterUserReport.sndSyncMode }})</li>
+                                <li>tSync (acc): {{ Number(masterUserReport.sndSyncCountDown / 1000).toFixed(2) }}s ({{ Number(masterUserReport.sndSyncCountDownA).toFixed(2) }})</li>
+                                <li>Rate: {{ Number(masterUserReport.sndRate).toFixed(10) }}</li>
+                                <li>Rate Change Delay: {{ masterUserReport.sndRateChangeDelay }}</li>
+                                <li>Status: {{ masterUserReport.sndStatus }}</li>
+
+                            </ul>
+                        </span>
+                        <span v-if="!masterUserReport">offline</span>
+                    </div>
+                </span>
+            </div>
+            <div class="accordion">
+            </div>
+            <div class="accordion">
+                    <div class="accordionTitle">
+                        Message Pipeline ({{  messagesPipeline.length }}), {{  socketConnected ? 'CONNECTED':'DISCONNECTED'  }},
+                        Last Msg: {{ messagesLastReceived }}
+                    </div>
+                    <div class="accordionPanel scrollY wordBreak hidden">
+                        <ol>
+                            <li v-for="item in messagesPipeline" v-bind:class="{ red: Math.floor(item.status / 10) == 1,
+                                yellow: Math.floor(item.status / 10) == 2, cyan: Math.floor(item.status / 10) == 3, green: item.status === 40 }">
+                                [{{  item.status }}] {{ item.res ? String(item.recipient).substr(-3) : String(item.sender).substr(-3) }}&rarr;{{ item.res ? String(item.sender).substr(-3) : String(item.recipient).substr(-3)}}: {{ item.method }}-{{ item.subject }}
+                                ({{ item.params }})
+                            </li>
+                        </ol>
+                    </div>
+                <div class="accordionTitle">
+                    Server Console
+                </div>
+                <div class="accordionPanel scrollY wordBreak hidden">
+                    <p>Filter: <input type="text" v-model="masterServerConsoleFilter" /></p>
+                    <ul>
+                        <li v-for="item in logServer" v-if="!masterServerConsoleFilter ||
+                        (item.subject + ' ' + item.message).toLowerCase().indexOf(masterServerConsoleFilter.toLowerCase()) !== -1">
+                            [{{ item.subject }}] {{ item.message }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="page" x-page="nojs" style="font-size:20px">
+            <h2>Time Travellers Error</h2>This website needs <b>JAVASCRIPT</b> and a <b>MODERN BROWSER</b> to
+            work<br/><br/>
+            If you see this, your software is too old or you are blocking JavaScript.<br/> <br/>
+            We are recommending to use the latest <a href="http://chrome.com">Chrome Browser</a>
+        </div>
+    </main>
+    <footer>
+        <div id="debugButton"><img src="gfx/debug.png"></div>
+        <h3 class="title">{{ timeServer }}</h3>
+    </footer>
+</div>
+
+</body>
+</html>
