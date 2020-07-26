@@ -10,6 +10,17 @@ class Game {
 
     static initialized = false;
 
+    /** @type {String} */
+    description;
+    /** @type {String} */
+    name;
+    /** @type {String} */
+    url;
+    /** @type {Array} */
+    channels;
+    /** @type {Object} */
+    media;
+
     static async init() {
         if(!this.initialized) {
             await this.loadGamesList();

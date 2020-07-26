@@ -3,6 +3,7 @@ import Log from "./Log.mjs";
 import Com from "./Com.mjs";
 import User from "./User.mjs";
 import Game from "./Game.mjs";
+import UIGameEditor from "./UIGameEditor.mjs";
 
 /*-----------------------------------
 Config
@@ -12,7 +13,7 @@ Config
 /*-----------------------------------
 Main
 ------------------------------------*/
-window.aae = {Com: Com, Game: Game};
+window.aae = {Com: Com, Game: Game, UIGameEditor: UIGameEditor};
 
 window.d1000 = async function() {
 

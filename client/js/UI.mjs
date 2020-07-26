@@ -5,17 +5,10 @@ class UI {
 
     constructor() {
 
-        const
-            pstyle = ''; //'background-color: #F5F6F7; border: 1px solid #dfdfdf; padding: 0px;';
-        let
-            templates = {};
-
-        $(
-            '#layout'
-        ).w2layout({
+        $('#layout').w2layout({
             name: 'layout',
             panels: [
-                {type: 'top', size: 40, resizable: false, style: pstyle},
+                {type: 'top', size: 40, resizable: false},
                 {
                     type: 'main',
                     tabs: {
@@ -31,7 +24,7 @@ class UI {
                                 content: 'paneSessionX'
                             }
                         ],
-                        onClick: function (event) {
+                        onClick: function(event) {
                             if (event.tab.content && w2ui[event.tab.content])
                                 this.owner.html('main', w2ui[event.tab.content]);
                             else console.error('content not found: ' + event.tab.content);
@@ -41,13 +34,12 @@ class UI {
             ]
         });
 
-        $()
-            .w2layout({
+        $().w2layout({
                 name: 'paneTop',
                 panels: [
                     {
                         type: 'main', style: 'padding-top: 9px; padding-left: 9px; font-size: 18px;',
-                        content: '<img src="gfx/favicon.png" style="width:18px;height:18px;" />Audio Augmented Encounter Studio'
+                        content: '<img alt="" src="gfx/favicon.png" style="width:18px;height:18px;" />Audio Augmented Encounter Studio'
                     },
                     {
                         type: 'right', style: 'text-align:right;padding-top:9px;padding-right:9px;',
@@ -58,9 +50,7 @@ class UI {
             });
 
 
-        $()
-
-            .w2grid({
+        $().w2grid({
                 name: 'paneGames',
                 show: {
                     header: false,
@@ -83,30 +73,23 @@ class UI {
                         {type: 'break'},
                         {type: 'button', id: 'mybutton', text: 'Launch Session', icon: 'fas fa-play'}
                     ],
-                    onClick: function
-
-                        (
-                            target
-                            ,
-                            data
-                        ) {
+                    onClick: function(target, data) {
                         console.log('item ' + target + ' is clicked. data: ' + data);
                         console.log(target);
 
                     },
                 },
                 // Edit selected game
-                onEdit: function (event) {
+                onEdit: function(/* event */) {
                     let game = this.get(this.getSelection()[0]);
-                    UIGameEditor.editGame(game.id);
+                    UIGameEditor.editGame(game.id).then();
                 },
                 // w2ui is about to render this pane - let's refresh the data before that
-                onRender: function (event) {
+                onRender: function(/* event */) {
                     this.clear();
                     let list = Game.gamesList;
                     let recid = 1;
-                    for (let i in list) {
-                        let item = list[i];
+                    for(let item of Object.values(list)) {
                         item['players'] = item['playersMin'] + '-' + item['playersMax'];
                         this.add({...item, ...{recid: recid++}});
                     }
@@ -146,7 +129,7 @@ class UI {
                     {type: 'button', id: 'mybutton3', text: 'Starting Time', icon: 'far fa-clock'},
                     {type: 'button', id: 'mybutton2', text: 'View', icon: 'far fa-eye'}
                 ],
-                onClick: function (target, data) {
+                onClick: function(target /*, data */) {
                     console.log(target);
                 }
             },
@@ -196,11 +179,11 @@ class UI {
             panels: [
                 {
                     type: 'main',
-                    style: "background-color:grey;",
+                    style: "background-color:black;",
                     name: 'paneGameChart',
                     content: 'blah',
-                    onShow: function () {
-                        console.log('show');
+                    onShow: function(event) {
+                        console.log('show' + event);
                     }
                 },
                 {
@@ -210,7 +193,7 @@ class UI {
                             tabs: [
                                 {id: 'tab1', text: 'Game Setup', content: 'paneGameXInfo'},
                                 {id: 'tab3', text: 'Channels Setup', content: 'paneGameXChannels'},
-                                {id: 'tab4', text: 'Audio Files', content: 'paneGameXLibrary'},
+                                {id: 'tab4', text: 'Media Library', content: 'paneGameXLibrary'},
                                 {id: 'tab2', text: 'Edit Clip', content: 'paneGameXEdit'},
                             ],
                             onClick: function (event) {
@@ -239,21 +222,28 @@ class UI {
                     editable: {type: 'text'}
                 },
             ],
-            // w2ui is about to render this pane - let's refresh the data before that
-            onRender: function (event) {
-                this.clear();
-                let list = UIGameEditor.active.getFields();
-                let recid = 1;
-                    for (let i in list) {
-                        let item = list[i];
-                        this.add({...item, ...{recid: recid++}});
-                    }
+            onChange: function(event) {
+                const row = this.get(event.recid);
+                if(!row) return;
+                let value = event.value_new.trim();
+                if(row.property === 'name' && value === '') {
+                    w2popup.open({
+                        title: 'Error',
+                        body: '<div class="w2ui-centered">Game must have a name!</div>',
+                        buttons   : '<button class="w2ui-btn" onclick="w2popup.close();">OK</button> ',
+                    });
+                } else UIGameEditor.active.setGameProperty(row.property, w2utils.stripTags(value));
+                this.render();
             },
-            records: [
-                {recid: 1, name: "Name", value: "My Test Game"},
-                {recid: 10, name: "Description", value: ""},
-                {recid: 11, name: "Project Homepage", value: ""},
-            ]
+            // w2ui is about to render this pane - let's refresh the data before that
+            onRender: function() {
+                this.clear();
+                let list = UIGameEditor.active.getRecordsInfo();
+                let recid = 1;
+                for (let item of Object.values(list)) {
+                    this.add({...item, ...{recid: recid++}});
+                }
+            },
         });
 
         $().w2grid({
@@ -302,123 +292,87 @@ class UI {
                 toolbarEdit: false,
 
             },
-            columnGroups: [
-                {text: 'Channel', span: 2},
-                {text: 'Players Assignment', span: 1},
-                {text: 'Players Minimum', span: 2},
-                {text: 'Players Maximum', span: 2},
-            ],
             columns: [
-                {field: 'recid', text: 'ID', size: '50px',},
+                {field: 'recid', text: '#', size: '50px',},
                 {
-                    field: 'name', text: 'Name',
+                    field: 'name', text: 'Channel Name',
                     editable: {type: 'text'}
                 },
                 {
-                    field: 'mode', text: 'Mode',
+                    field: 'assignment', text: 'Players Assignment',
                     editable: {
                         type: 'list',
-                        items: {"4": "Automatic", "5": "Fill Up First", "6": "Fill Up Last"},
+                        items: {"auto": "Automatic", "first": "Fill Up First", "last": "Fill Up Last"},
                         showAll: true
                     },
                 },
                 {
-                    field: 'minActive', text: 'Active', size: '60px', style: 'text-align: center',
-                    editable: {type: 'checkbox', style: 'text-align: center'}
+                    field: 'playersMin', text: 'Min. Players', render: 'int',
+                    editable: {type: 'int', min: 0},
+                    style: 'text-align: left',
                 },
                 {
-                    field: 'minInt', text: 'Minimum', render: 'int',
-                    editable: {type: 'int', min: 0}
-                },
-                {
-                    field: 'maxActive', text: 'Active', size: '60px', style: 'text-align: center',
-                    editable: {type: 'checkbox', style: 'text-align: center'}
-                },
-                {
-                    field: 'maxInt', text: 'Maximum', render: 'int',
-                    editable: {type: 'int', min: 0}
-                },
-                {
-                    field: '', text: '', size: '1px', style: "display:none"
+                    field: 'playersMax', text: 'Max. Players', render: 'int',
+                    editable: {type: 'int', min: 0},
+                    style: 'text-align: left',
                 },
             ],
             toolbar: {
                 items: [
-                    {id: 'plus', type: 'button', text: 'More Channels', icon: 'fas fa-plus'},
-                    {id: 'minus', type: 'button', text: 'Less Channel', icon: 'fas fa-minus'},
+                    {id: 'add_channel', type: 'button', text: 'More Channels', icon: 'fas fa-plus'},
+                    {id: 'remove_channel', type: 'button', text: 'Less Channel', icon: 'fas fa-minus'},
                 ],
-                onClick: function (event) {
-                    if (event.target == 'add') {
-                        w2ui.grid.add({recid: w2ui.grid.records.length + 1});
+                onClick: function(event) {
+                    switch(event.target) {
+                        case 'add_channel':
+                            if(!UIGameEditor.active.addChannel()) w2popup.open({
+                                title: 'Error',
+                                body: '<div class="w2ui-centered">Maximum amount of channels reached!</div>',
+                                buttons   : '<button class="w2ui-btn" onclick="w2popup.close();">OK</button> ',
+                            });
+                            this.owner.render();
+                            break;
+                        case 'remove_channel':
+                            let selection = this.owner.getSelection();
+                            for(let recid of selection) {
+                                UIGameEditor.active.removeChannel(recid - 1);
+                                break; // no multi selection supported
+                            }
+                            this.owner.render();
+                            break;
                     }
                 }
             },
-            records: [
-                {
-                    recid: 1,
-                    active: true,
-                    name: "Channel 1",
-                    mode: "Automatic",
-                    minActive: false,
-                    minInt: 0,
-                    maxActive: false,
-                    maxInt: 0
-                },
-                {
-                    recid: 2,
-                    active: true,
-                    name: "Channel 2",
-                    mode: "Automatic",
-                    minActive: false,
-                    minInt: 0,
-                    maxActive: false,
-                    maxInt: 0
-                },
-                {
-                    recid: 3,
-                    active: true,
-                    name: "Channel 3",
-                    mode: "Automatic",
-                    minActive: false,
-                    minInt: 0,
-                    maxActive: false,
-                    maxInt: 0
-                },
-                {
-                    recid: 4,
-                    active: true,
-                    name: "Channel 4",
-                    mode: "Automatic",
-                    minActive: false,
-                    minInt: 0,
-                    maxActive: false,
-                    maxInt: 0
-                },
-                {
-                    recid: 5,
-                    active: true,
-                    name: "Channel 5",
-                    mode: "Automatic",
-                    minActive: false,
-                    minInt: 0,
-                    maxActive: false,
-                    maxInt: 0
-                },
-                {
-                    recid: 6,
-                    active: true,
-                    name: "Channel 6",
-                    mode: "Automatic",
-                    minActive: false,
-                    minInt: 0,
-                    maxActive: false,
-                    maxInt: 0
-                },
-            ]
+            onChange: function(event) {
+                const column = this.columns[event.column];
+                const property = column.field;
+                const channelId = UIGameEditor.active.getChannelId(this.get(event.recid)['name']);
+                if(channelId !== null) {
+                    let value = typeof(event.value_new) === 'object' ? event.value_new.id : event.value_new;
+                    if(column.render === 'int') {
+                        value = parseInt(value);
+                        if(isNaN(value)) value = null;
+                    }
+                    UIGameEditor.active.setChannelProperty(channelId, property, value);
+                }
+                this.render();
+
+            },
+            // w2ui is about to render this pane - let's refresh the data before that
+            onRender: function(/* event */) {
+                this.clear();
+                let list = UIGameEditor.active.getRecordsChannels();
+                let recid = 1;
+                    for (let item of Object.values(list)) {
+                        this.add({...item, ...{recid: recid++}});
+                    }
+            },
         });
 
         $().w2grid({
             name: 'paneGameXLibrary',
+            reorderRows: true,
+            multiSelect: true,
             show: {
                 toolbar: true,
                 footer: false,
@@ -426,7 +380,7 @@ class UI {
                 toolbarColumns: false,
                 toolbarDelete: true,
                 toolbarInput: false,
-                toolbarReload: true,
+                toolbarReload: false,
                 toolbarSearch: false,
                 toolbarSave: false,
                 toolbarEdit: false,
@@ -438,113 +392,167 @@ class UI {
                     editable: {type: 'text'}
                 },
                 {
-                    field: 'url', text: 'URL', sortable: true,
-                    editable: {type: 'text'}
-                },
-                {
                     field: 'length', text: 'Length', sortable: true,
-                    editable: {type: 'text'}
                 },
                 {
-                    field: 'bitrate', text: 'Bitrate', sortable: true,
-                    editable: {type: 'text'}
+                    field: 'quality', text: 'Quality', sortable: true,
                 },
                 {
                     field: 'size', text: 'File Size', sortable: true,
-                    editable: {type: 'text'}
                 },
                 {
                     field: 'date', text: 'Last Changed', sortable: true,
-                    editable: {type: 'text'}
                 },],
             toolbar: {
                 items: [
-                    {id: 'plus', type: 'button', caption: 'Add Audio URL', icon: 'fas fa-file-audio'},
+                    /* {id: 'new_folder', type: 'button', text: 'Add Folder', icon: 'fas fa-folder-plus'}, */
+                    {id: 'add_file', type: 'button', text: 'Add Audio File', icon: 'fas fa-file-medical'},
+                    {id: 'update_file', type: 'button', text: 'Update Audio File', disabled: true, icon: 'fas fa-file-upload'},
+                    {type: 'break'},
+                    {id: 'move_files', type: 'menu',  text: 'Move Files', icon: 'fas fa-folder-open', disabled: true,
+                        items: function() {
+                            const folders = UIGameEditor.active.getMediaFolders();
+                            const records = [
+                                {id:'', text:'/', icon: 'fas fa-folder-open'},
+                            ];
+                            for(const folder of folders) {
+                                records.push({id:folder, text:'/'+folder, icon: 'fas fa-folder-open'});
+                            }
+                            records.push({id:'___NEW___', text:'New Folder', icon: 'fas fa-folder-plus'});
+                            return records;
+                        },
+                    },
+                    {type: 'break'},
+                    {id: 'play_file', type: 'button', text: 'Play Audio File', disabled: true,  icon: 'fas fa-play'},
                 ],
-                onClick: function (event) {
-                    if (event.target == 'add') {
-                        w2ui.grid.add({recid: w2ui.grid.records.length + 1});
+                onClick: function(event) {
+                    const target = event.target.split(':');
+                    switch(target[0]) {
+                        case 'add_file':
+                            // TODO: implement add file
+                            w2ui.grid.add({recid: w2ui.grid.records.length + 1});
+                            break;
+                        case 'move_files':
+                            if(target.length > 1) {
+                                const folder = target[1];
+                                const selection = this.owner.getSelection();
+                                const owner = this.owner;
+                                if(folder === '___NEW___') {
+                                    w2prompt({
+                                        label       : 'New Folder',
+                                        value       : '',
+                                        title       : 'New Folder',
+                                        ok_text     : 'Ok',
+                                        cancel_text : 'Cancel',
+                                        width       : 400,
+                                        height      : 200
+                                    })
+                                    .change(function (event) {
+                                        console.log('change', event);
+                                    })
+                                    .ok(function (folder) {
+                                        folder = w2utils.stripTags(folder).trim();
+                                        if(!folder) return;
+                                        for(const i of selection) {
+                                            const item = owner.get(i);
+                                            if(!item.directory) UIGameEditor.active.setMediaFolder(item.id, folder);
+                                        }
+                                        owner.toolbar.disable('move_files');
+                                        owner.toolbar.disable('update_file');
+                                        owner.toolbar.disable('play_file');
+                                        owner.render();
+                                    });
+                                }
+                                else {
+                                    for(const i of selection) {
+                                        const item = this.owner.get(i);
+                                        if(!item.directory) UIGameEditor.active.setMediaFolder(item.id, folder);
+                                    }
+                                    this.owner.toolbar.disable('move_files');
+                                    this.owner.toolbar.disable('update_file');
+                                    this.owner.toolbar.disable('play_file');
+                                    this.owner.render();
+                                }
+                            }
+                            break;
+                        case 'play_file':
+                            // TODO: implement play file
+                            break;
+                        case 'update_file':
+                            // TODO: implement update file
+                            break;
                     }
+                },
+            },
+            onChange: function(event) {
+                const row = this.get(event.recid);
+                if(!row) return;
+                let value = w2utils.stripTags(event.value_new.trim());
+                if(value === '') {
+                    w2popup.open({
+                        title: 'Error',
+                        body: '<div class="w2ui-centered">Media file must have a name!</div>',
+                        buttons   : '<button class="w2ui-btn" onclick="w2popup.close();">OK</button> ',
+                    });
+                } else UIGameEditor.active.setMediaName(row.id, value);
+                this.render();
+            },
+            onDelete: function(event) {
+                // confirmation set force=true
+                if(event.force)
+                {
+                    const selection = this.getSelection();
+                    for(const i of selection) {
+                        const item = this.get(i);
+                        if(!item.directory) UIGameEditor.active.removeMedia(item.id);
+                    }
+                    event.preventDefault();
+                    this.render();
+                    console.log('delete selectioN: ', this.deletionSelection, this.getSelection());
                 }
             },
-            records: [
-                {
-                    recid: 1,
-                    name: "intro_1",
-                    url: "https://blah.blah.blub",
-                    length: "15:22",
-                    bitrate: "44 kHz",
-                    size: "25 MBytes",
-                    date: "2020-04-17 17:10:44"
-                },
-                {
-                    recid: 2,
-                    name: "intro_2",
-                    url: "https://blah.blah.blub",
-                    length: "15:22",
-                    bitrate: "44 kHz",
-                    size: "25 MBytes",
-                    date: "2020-04-17 17:10:44"
-                },
-                {
-                    recid: 3,
-                    name: "intro_3",
-                    url: "https://blah.blah.blub",
-                    length: "15:22",
-                    bitrate: "44 kHz",
-                    size: "25 MBytes",
-                    date: "2020-04-17 17:10:44"
-                },
-                {
-                    recid: 4,
-                    name: "intro_4",
-                    url: "https://blah.blah.blub",
-                    length: "15:22",
-                    bitrate: "44 kHz",
-                    size: "25 MBytes",
-                    date: "2020-04-17 17:10:44"
-                },
-                {
-                    recid: 5,
-                    name: "test_1",
-                    url: "https://blah.blah.blub",
-                    length: "17:55",
-                    bitrate: "44 kHz",
-                    size: "41 MBytes",
-                    date: "2020-04-17 17:10:44"
-                },
-                {
-                    recid: 6,
-                    name: "test_2",
-                    url: "https://blah.blah.blub",
-                    length: "17:55",
-                    bitrate: "44 kHz",
-                    size: "41 MBytes",
-                    date: "2020-04-17 17:10:44"
-                },
-                {
-                    recid: 7,
-                    name: "test_3",
-                    url: "https://blah.blah.blub",
-                    length: "17:55",
-                    bitrate: "44 kHz",
-                    size: "41 MBytes",
-                    date: "2020-04-17 17:10:44"
-                },
-                {
-                    recid: 8,
-                    name: "test_4",
-                    url: "https://blah.blah.blub",
-                    length: "17:5",
-                    bitrate: "44 kHz",
-                    size: "41 MBytes",
-                    date: "2020-04-17 17:10:44"
-                },
-            ]
+            // select rows
+            onSelect: function(event) {
+                if(!event.recids) event.recids = [Number(event.recid),];
+                let selection = [];
+                for(let item of Object.values(event.recids)) {
+                    selection.push(this.get(item));
+                }
+                this.toolbar.disable('play_file');
+                this.toolbar.disable('update_file');
+                if(selection.length == 1) {
+                    let item = this.get(event.recid);
+                    if(!item.directory) {
+                        this.toolbar.enable('play_file');
+                        this.toolbar.enable('update_file');
+                    }
+                }
+                if(selection.length) {
+                    this.toolbar.enable('move_files');
+                }
+                else {
+                    this.toolbar.disable('move_files');
+                }
+                // console.log(selection);
+            },
+            // w2ui is about to render this pane - let's refresh the data before that
+            onRender: function(/* event */) {
+                this.clear();
+                let list = UIGameEditor.active.getRecordsMedia();
+                let recid = 1;
+                    for (let item of Object.values(list)) {
+                        this.add({...item, ...{recid: recid++}});
+                    }
+            },
+            // select rows
+            onUnselect: function(event) {
+                this.toolbar.disable('move_files');
+                this.toolbar.disable('play_file');
+                this.toolbar.disable('update_file');
+            },
         });
 
         w2ui['paneGameX'].html('preview', w2ui['paneGameXInfo']);
-
         w2ui['layout'].html('top', w2ui['paneTop']);
         w2ui['layout'].html('main', w2ui['paneGames']);
 
